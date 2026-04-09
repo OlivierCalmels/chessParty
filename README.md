@@ -34,11 +34,11 @@ Le dossier `dist/` contient le site statique prêt à déployer.
 
 ## Déploiement GitHub Pages
 
-Le workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) construit `dist/` et met à jour la branche **`gh-pages`** à chaque push sur `main`.
+Le workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) exécute `npm run build`, puis publie le dossier **`dist/`** via l’artefact officiel Pages (`upload-pages-artifact` + `deploy-pages`).
 
-1. **Settings → Pages → Build and deployment**
-2. **Source : Deploy from a branch**
-3. **Branch : `gh-pages`** / dossier **`/` (root)** — pas `main` : la racine de `main` contient le template Vite (`/src/main.tsx`), ce qui donne une page blanche si tu la publies telle quelle.
+1. **Settings → Pages → Build and deployment → Source : GitHub Actions** (comme sur ta capture).
+2. Avec cette source, **seul** ce workflow alimente le site. Ne pas publier la racine de **`main`** (le `index.html` Vite pointe vers `/src/main.tsx` → page blanche).
+3. Après un push sur `main`, vérifie l’onglet **Actions** : le workflow **Deploy to GitHub Pages** doit être vert. Tu peux aussi le relancer à la main (**Run workflow**).
 4. Site : [https://oliviercalmels.github.io/chessParty/](https://oliviercalmels.github.io/chessParty/)
 
 ## Stack technique
