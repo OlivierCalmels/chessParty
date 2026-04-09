@@ -17,18 +17,14 @@ Enregistreur de parties d'échecs — application web statique (React + TypeScri
 
 ## Développement
 
-Il faut **Node 20.19+ ou 22.12+** (Vite 8). Vérifie avec `node -v`. Les scripts `dev` / `build` / `lint` / `preview` **refusent** une version trop vieille et affichent un message (au lieu de l’erreur cryptique `??=`).
-
-Avec **nvm** : `nvm install` (lit [`.nvmrc`](.nvmrc)), puis `nvm use`, puis :
+**Node.js 20.19+ ou 22.12+** (requis par Vite 8).
 
 ```bash
 npm install
 npm run dev
 ```
 
-Les lignes `npm WARN optional SKIPPING OPTIONAL DEPENDENCY` pour d’autres OS/arch sont **normales** : npm n’installe que le binding natif qui correspond à ta machine.
-
-En local, ouvre **http://localhost:5173/** (le build de prod utilise le préfixe `/chessParty/` pour GitHub Pages ; pour tester ce build : `npm run preview`, puis **http://localhost:4173/chessParty/**).
+Ouvre [http://localhost:5173/](http://localhost:5173/) — en dev, l’app est servie à la racine. Le build de production utilise le préfixe `/chessParty/` pour GitHub Pages ; pour le tester en local : `npm run preview`, puis [http://localhost:4173/chessParty/](http://localhost:4173/chessParty/).
 
 ## Build
 
@@ -38,14 +34,13 @@ npm run build
 
 Le dossier `dist/` contient le site statique prêt à déployer.
 
-## Déploiement GitHub Pages
+## Déploiement (GitHub Pages)
 
-Le workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) exécute `npm run build`, puis publie le dossier **`dist/`** via l’artefact officiel Pages (`upload-pages-artifact` + `deploy-pages`).
+À chaque push sur `main`, le workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) build le projet et publie `dist/` via GitHub Actions.
 
-1. **Settings → Pages → Build and deployment → Source : GitHub Actions** (comme sur ta capture).
-2. Avec cette source, **seul** ce workflow alimente le site. Ne pas publier la racine de **`main`** (le `index.html` Vite pointe vers `/src/main.tsx` → page blanche).
-3. Après un push sur `main`, vérifie l’onglet **Actions** : le workflow **Deploy to GitHub Pages** doit être vert. Tu peux aussi le relancer à la main (**Run workflow**).
-4. Site : [https://oliviercalmels.github.io/chessParty/](https://oliviercalmels.github.io/chessParty/)
+Dans le dépôt : **Settings → Pages → Source : GitHub Actions**.
+
+Site : [https://oliviercalmels.github.io/chessParty/](https://oliviercalmels.github.io/chessParty/)
 
 ## Stack technique
 

@@ -1,0 +1,9 @@
+---
+description: Node natif macOS — deps Vite/Rolldown si erreurs de binding
+alwaysApply: true
+---
+
+# Node sur ce dépôt
+
+- Vite 8 exige Node 20.19+ ou 22.12+ ; `scripts/check-node.mjs` (pré-scripts npm) impose cette version et vérifie le binding Rolldown sur darwin.
+- Si erreur du type « Cannot find native binding » ou arch incohérente : proposer `rm -rf node_modules && npm install` avec le même Node que pour le dev.
