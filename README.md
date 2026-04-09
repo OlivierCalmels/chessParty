@@ -17,7 +17,7 @@ Enregistreur de parties d'échecs — application web statique (React + TypeScri
 
 ## Développement
 
-Il faut **Node 20.19+ ou 22.12+** (Vite 8). Vérifie avec `node -v`. Si `npm run dev` plante avec `Unexpected token '??='`, c’est presque toujours un **Node trop ancien** encore prioritaire dans le PATH (hors nvm).
+Il faut **Node 20.19+ ou 22.12+** (Vite 8). Vérifie avec `node -v`. Les scripts `dev` / `build` / `lint` / `preview` **refusent** une version trop vieille et affichent un message (au lieu de l’erreur cryptique `??=`).
 
 Avec **nvm** : `nvm install` (lit [`.nvmrc`](.nvmrc)), puis `nvm use`, puis :
 

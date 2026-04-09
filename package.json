@@ -7,9 +7,13 @@
   },
   "type": "module",
   "scripts": {
+    "predev": "node scripts/check-node.mjs",
     "dev": "vite",
+    "prebuild": "node scripts/check-node.mjs",
     "build": "tsc -b && vite build",
+    "prelint": "node scripts/check-node.mjs",
     "lint": "eslint .",
+    "prepreview": "node scripts/check-node.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
