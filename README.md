@@ -34,39 +34,11 @@ Le dossier `dist/` contient le site statique prêt à déployer.
 
 ## Déploiement GitHub Pages
 
-1. Pusher le code sur GitHub
-2. Dans Settings > Pages, choisir "GitHub Actions" comme source
-3. Créer `.github/workflows/deploy.yml` :
+Le workflow [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml) construit `dist/` et publie sur Pages à chaque push sur `main`.
 
-```yaml
-name: Deploy to GitHub Pages
-on:
-  push:
-    branches: [main]
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    permissions:
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-      - run: npm ci
-      - run: npm run build
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist
-      - id: deployment
-        uses: actions/deploy-pages@v4
-```
-
-Le site sera disponible sur `https://<username>.github.io/chessParty/`
+1. **Settings → Pages → Build and deployment**
+2. **Source : GitHub Actions** (pas « Deploy from a branch »). Si la racine du dépôt est publiée, le `index.html` Vite pointe vers `/src/main.tsx` : la page reste blanche en production.
+3. Après le premier déploiement réussi, le site est sur [https://oliviercalmels.github.io/chessParty/](https://oliviercalmels.github.io/chessParty/)
 
 ## Stack technique
 
