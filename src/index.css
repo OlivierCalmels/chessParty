@@ -1,0 +1,54 @@
+@import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --color-surface: #ffffff;
+  --color-surface-alt: #f3f4f6;
+  --color-text: #111827;
+  --color-text-muted: #6b7280;
+  --color-border: #e5e7eb;
+  --color-primary: #2563eb;
+  --color-primary-hover: #1d4ed8;
+  --color-danger: #dc2626;
+  --color-danger-hover: #b91c1c;
+}
+
+.dark {
+  --color-surface: #111827;
+  --color-surface-alt: #1f2937;
+  --color-text: #f9fafb;
+  --color-text-muted: #9ca3af;
+  --color-border: #374151;
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-danger: #ef4444;
+  --color-danger-hover: #dc2626;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: var(--color-text);
+  font-family: system-ui, -apple-system, sans-serif;
+  margin: 0;
+  min-height: 100dvh;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.game-options-dialog::backdrop {
+  background: rgb(0 0 0 / 0.4);
+}
+
+/* react-chessboard — promotion au drag : uniquement dame et cavalier (masque tour/fou) */
+div[title='Choose promotion piece'] {
+  display: flex !important;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  grid-template-columns: unset !important;
+}
+
+div[title='Choose promotion piece'] > div[data-piece$='R'],
+div[title='Choose promotion piece'] > div[data-piece$='B'] {
+  display: none !important;
+}
