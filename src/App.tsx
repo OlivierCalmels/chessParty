@@ -6,9 +6,15 @@ import { HomePage } from './pages/HomePage';
 import { ImportPage } from './pages/ImportPage';
 import { NewGamePage } from './pages/NewGamePage';
 
+function routerBasename(): string | undefined {
+  const base = import.meta.env.BASE_URL
+  const trimmed = base.endsWith('/') ? base.slice(0, -1) : base
+  return trimmed === '' ? undefined : trimmed
+}
+
 export default function App() {
   return (
-    <BrowserRouter basename="/chessParty">
+    <BrowserRouter basename={routerBasename()}>
       <Routes>
         <Route element={<Layout />}>
           <Route index element={<HomePage />} />

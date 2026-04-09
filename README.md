@@ -17,12 +17,18 @@ Enregistreur de parties d'échecs — application web statique (React + TypeScri
 
 ## Développement
 
+Il faut **Node 20.19+ ou 22.12+** (Vite 8). Vérifie avec `node -v`. Si `npm run dev` plante avec `Unexpected token '??='`, c’est presque toujours un **Node trop ancien** encore prioritaire dans le PATH (hors nvm).
+
+Avec **nvm** : `nvm install` (lit [`.nvmrc`](.nvmrc)), puis `nvm use`, puis :
+
 ```bash
 npm install
 npm run dev
 ```
 
-Ouvre http://localhost:5173/chessParty/
+Les lignes `npm WARN optional SKIPPING OPTIONAL DEPENDENCY` pour d’autres OS/arch sont **normales** : npm n’installe que le binding natif qui correspond à ta machine.
+
+En local, ouvre **http://localhost:5173/** (le build de prod utilise le préfixe `/chessParty/` pour GitHub Pages ; pour tester ce build : `npm run preview`, puis **http://localhost:4173/chessParty/**).
 
 ## Build
 
