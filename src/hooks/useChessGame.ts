@@ -58,8 +58,8 @@ type ChessGameState = {
   turn: 'w' | 'b';
   isGameOver: boolean;
   result: GameResult;
-  canUndo: boolean;
-  undoCount: number;
+  canUndoLastMove: boolean;
+  canRevertManualResult: boolean;
   gameInfo: Pick<Game, 'id' | 'name' | 'white' | 'black' | 'date'>;
   isCheck: boolean;
   kingInCheckSquare: string | undefined;
@@ -83,18 +83,16 @@ type ChessGameState = {
 
 type ChessGameActions = {
   makeMove: (from: string, to: string, promotion?: string) => boolean;
-  undo: () => void;
+  undoLastMove: () => void;
+  revertManualResult: () => void;
   resign: (color: 'w' | 'b') => void;
   declareDraw: () => void;
 };
-
-const MAX_UNDO = 2;
 
 export function useChessGame(initialGame: Game): ChessGameState & ChessGameActions {
   const chessRef = useRef<Chess>(new Chess());
   const [, forceRender] = useState(0);
   const [result, setResult] = useState<GameResult>(initialGame.result);
-  const [undoCount, setUndoCount] = useState(0);
   const [replayPly, setReplayPly] = useState(() => initialGame.moves.length);
   const prevMoveCountRef = useRef(initialGame.moves.length);
   const gameInfo = useMemo(
@@ -224,7 +222,6 @@ export function useChessGame(initialGame: Game): ChessGameState & ChessGameActio
             : ({ from, to } as const);
         const move = chess.move(moveArg);
         if (!move) return false;
-        setUndoCount(0);
         if (chess.isGameOver()) {
           const newResult = chess.isCheckmate()
             ? chess.turn() === 'w' ? '0-1' : '1-0'
@@ -299,26 +296,28 @@ export function useChessGame(initialGame: Game): ChessGameState & ChessGameActio
     [makeMoveInternal],
   );
 
-  const undo = useCallback(() => {
-    if (undoCount >= MAX_UNDO) return;
+  const undoLastMove = useCallback(() => {
     if (isReplayMode) return;
-
-    // Annuler un abandon / nulle (la position n'est pas encore terminée sur l'échiquier)
-    if (result !== '*' && !chess.isGameOver()) {
+    const c = chessRef.current;
+    if (c.history().length === 0) return;
+    c.undo();
+    if (!c.isGameOver()) {
       setResult('*');
-      setUndoCount((c) => c + 1);
-      rerender();
-      return;
-    }
-
-    if (chess.history().length === 0) return;
-    chess.undo();
-    setUndoCount((c) => c + 1);
-    if (result !== '*' && !chess.isGameOver()) {
-      setResult('*');
+    } else if (c.isCheckmate()) {
+      setResult(c.turn() === 'w' ? '0-1' : '1-0');
+    } else {
+      setResult('1/2-1/2');
     }
     rerender();
-  }, [chess, undoCount, result, rerender, isReplayMode]);
+  }, [isReplayMode, rerender]);
+
+  const revertManualResult = useCallback(() => {
+    if (isReplayMode) return;
+    const c = chessRef.current;
+    if (c.isGameOver()) return;
+    setResult('*');
+    rerender();
+  }, [isReplayMode, rerender]);
 
   const resign = useCallback(
     (color: 'w' | 'b') => {
@@ -348,11 +347,8 @@ export function useChessGame(initialGame: Game): ChessGameState & ChessGameActio
     isGameOver,
     displayIsGameOver,
     result: computeResult(),
-    canUndo:
-      undoCount < MAX_UNDO &&
-      !isReplayMode &&
-      (chess.history().length > 0 || (result !== '*' && !chess.isGameOver())),
-    undoCount,
+    canUndoLastMove: !isReplayMode && chess.history().length > 0,
+    canRevertManualResult: !isReplayMode && result !== '*' && !chess.isGameOver(),
     gameInfo,
     isCheck,
     kingInCheckSquare,
@@ -364,7 +360,8 @@ export function useChessGame(initialGame: Game): ChessGameState & ChessGameActio
     completePromotion,
     applyPieceDrop,
     makeMove,
-    undo,
+    undoLastMove,
+    revertManualResult,
     resign,
     declareDraw,
     replayPly,

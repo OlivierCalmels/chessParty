@@ -3,9 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../ui/Button';
 
 type Props = {
-  canUndo: boolean;
+  canUndoLastMove: boolean;
+  canRevertManualResult: boolean;
   isGameOver: boolean;
-  onUndo: () => void;
+  onUndoLastMove: () => void;
+  onRevertManualResult: () => void;
   onResign: (color: 'w' | 'b') => void;
   onDraw: () => void;
   /** Barre compacte sous l’échiquier (enregistrement de partie). */
@@ -13,9 +15,11 @@ type Props = {
 };
 
 export function GameControls({
-  canUndo,
+  canUndoLastMove,
+  canRevertManualResult,
   isGameOver,
-  onUndo,
+  onUndoLastMove,
+  onRevertManualResult,
   onResign,
   onDraw,
   nearBoard,
@@ -36,8 +40,21 @@ export function GameControls({
         </span>
       )}
       <div className={rowClass}>
-        <Button variant="secondary" className={btnClass} onClick={onUndo} disabled={!canUndo}>
-          Annuler
+        <Button
+          variant="secondary"
+          className={btnClass}
+          onClick={onUndoLastMove}
+          disabled={!canUndoLastMove}
+        >
+          Annuler dernier coup
+        </Button>
+        <Button
+          variant="secondary"
+          className={btnClass}
+          onClick={onRevertManualResult}
+          disabled={!canRevertManualResult}
+        >
+          Annuler abandon / nulle
         </Button>
         {!isGameOver && (
           <>

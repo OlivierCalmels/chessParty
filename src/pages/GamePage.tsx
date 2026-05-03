@@ -70,7 +70,8 @@ function GamePageInner({ game: initialGame }: { game: Game }) {
     isGameOver,
     displayIsGameOver,
     result,
-    canUndo,
+    canUndoLastMove,
+    canRevertManualResult,
     gameInfo,
     isCheck,
     kingInCheckSquare,
@@ -81,7 +82,8 @@ function GamePageInner({ game: initialGame }: { game: Game }) {
     isPawnPromotionTarget,
     completePromotion,
     applyPieceDrop,
-    undo,
+    undoLastMove,
+    revertManualResult,
     resign,
     declareDraw,
     replayPly,
@@ -347,9 +349,11 @@ function GamePageInner({ game: initialGame }: { game: Game }) {
           <div className="rounded-lg border border-(--color-border) bg-(--color-surface-alt)/50 p-3">
             <GameControls
               nearBoard
-              canUndo={canUndo}
+              canUndoLastMove={canUndoLastMove}
+              canRevertManualResult={canRevertManualResult}
               isGameOver={isGameOver}
-              onUndo={undo}
+              onUndoLastMove={undoLastMove}
+              onRevertManualResult={revertManualResult}
               onResign={resign}
               onDraw={declareDraw}
             />
