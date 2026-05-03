@@ -100,6 +100,7 @@ function GamePageInner({ game: initialGame }: { game: Game }) {
   const prevSaveRef = useRef('');
   const prevMoveCountRef = useRef(moves.length);
   const timeoutAlertShownRef = useRef(false);
+  const prevIsGameOverRef = useRef(isGameOver);
 
   useEffect(() => {
     setBlackAtBottom(false);
@@ -109,6 +110,12 @@ function GamePageInner({ game: initialGame }: { game: Game }) {
     setClockState(initialGame.clockState);
     prevMoveCountRef.current = initialGame.moves.length;
   }, [initialGame.id, initialGame.clockState, initialGame.moves.length]);
+
+  // Aligner le ref seulement au changement de partie (évite d’écraser l’historique fin/reprise)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    prevIsGameOverRef.current = isGameOver;
+  }, [initialGame.id]);
 
   useEffect(() => {
     if (!clockEnabled) return;
@@ -146,9 +153,31 @@ function GamePageInner({ game: initialGame }: { game: Game }) {
   }, [clockEnabled, clockState, isGameOver, isReplayMode, resign]);
 
   useEffect(() => {
+    const wasGameOver = prevIsGameOverRef.current;
+    prevIsGameOverRef.current = isGameOver;
+    if (clockEnabled && clockState?.started && !isReplayMode && wasGameOver && !isGameOver) {
+      timeoutAlertShownRef.current = false;
+      setClockState((s) =>
+        s
+          ? {
+              ...s,
+              running: true,
+              lastTickAt: Date.now(),
+              activeColor: displayTurn,
+            }
+          : s,
+      );
+    }
+  }, [clockEnabled, clockState?.started, displayTurn, isGameOver, isReplayMode]);
+
+  useEffect(() => {
     if (!clockEnabled || !clockState || isGameOver || isReplayMode) return;
     const prev = prevMoveCountRef.current;
     const nextCount = moves.length;
+    if (nextCount < prev) {
+      prevMoveCountRef.current = nextCount;
+      return;
+    }
     if (nextCount <= prev) {
       prevMoveCountRef.current = nextCount;
       return;
@@ -315,7 +344,18 @@ function GamePageInner({ game: initialGame }: { game: Game }) {
             )}
           </div>
 
-          <div className="flex flex-col gap-2">
+          <div className="rounded-lg border border-(--color-border) bg-(--color-surface-alt)/50 p-3">
+            <GameControls
+              nearBoard
+              canUndo={canUndo}
+              isGameOver={isGameOver}
+              onUndo={undo}
+              onResign={resign}
+              onDraw={declareDraw}
+            />
+          </div>
+
+          <div className="flex min-w-0 flex-col gap-2">
             <ChessBoard
               fen={fen}
               onPieceDrop={handlePieceDrop}
@@ -348,17 +388,6 @@ function GamePageInner({ game: initialGame }: { game: Game }) {
                 onLast={replayGoLast}
               />
             </div>
-          </div>
-
-          <div className="rounded-lg border border-(--color-border) bg-(--color-surface-alt)/50 p-3">
-            <GameControls
-              nearBoard
-              canUndo={canUndo}
-              isGameOver={isGameOver}
-              onUndo={undo}
-              onResign={resign}
-              onDraw={declareDraw}
-            />
           </div>
         </div>
       </div>

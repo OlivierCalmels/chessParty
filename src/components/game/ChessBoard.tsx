@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Chessboard } from 'react-chessboard';
 
 import { cburnettCustomPieces } from './cburnettPieces';
@@ -35,8 +35,31 @@ export function ChessBoard({
   kingInCheckSquare,
   isCheck,
 }: Props) {
+  const boardWrapRef = useRef<HTMLDivElement>(null);
+  const [boardWidthPx, setBoardWidthPx] = useState<number>();
+
   const [selectedSquare, setSelectedSquare] = useState<BoardSquare | null>(null);
   const [promotionClick, setPromotionClick] = useState<{ from: string; to: string } | null>(null);
+
+  useLayoutEffect(() => {
+    const el = boardWrapRef.current;
+    if (!el) return;
+
+    const sync = () => {
+      const next = Math.floor(el.getBoundingClientRect().width);
+      if (next <= 0) return;
+      setBoardWidthPx((prev) => {
+        if (prev === undefined) return next;
+        if (Math.abs(next - prev) < 2) return prev;
+        return next;
+      });
+    };
+
+    sync();
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     setSelectedSquare(null);
@@ -131,7 +154,7 @@ export function ChessBoard({
   }
 
   return (
-    <div className="relative w-full max-w-full">
+    <div className="relative w-full min-w-0 max-w-full">
       {promotionClick && !disabled && (
         <div className="pointer-events-none absolute inset-x-0 bottom-0 z-1001 flex justify-center pb-2">
           <div className="pointer-events-auto">
@@ -146,8 +169,11 @@ export function ChessBoard({
           </div>
         </div>
       )}
-      <div className="aspect-square w-full">
+      <div ref={boardWrapRef} className="aspect-square w-full min-w-0 max-w-full">
+        {boardWidthPx !== undefined && boardWidthPx > 0 && (
         <Chessboard
+          key={boardWidthPx}
+          boardWidth={boardWidthPx}
           boardOrientation={boardOrientation}
           position={fen}
           customPieces={cburnettCustomPieces}
@@ -172,6 +198,7 @@ export function ChessBoard({
           customLightSquareStyle={{ backgroundColor: '#edeed1' }}
           customSquareStyles={customSquareStyles}
         />
+        )}
       </div>
     </div>
   );

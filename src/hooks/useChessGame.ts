@@ -301,6 +301,16 @@ export function useChessGame(initialGame: Game): ChessGameState & ChessGameActio
 
   const undo = useCallback(() => {
     if (undoCount >= MAX_UNDO) return;
+    if (isReplayMode) return;
+
+    // Annuler un abandon / nulle (la position n'est pas encore terminée sur l'échiquier)
+    if (result !== '*' && !chess.isGameOver()) {
+      setResult('*');
+      setUndoCount((c) => c + 1);
+      rerender();
+      return;
+    }
+
     if (chess.history().length === 0) return;
     chess.undo();
     setUndoCount((c) => c + 1);
@@ -308,7 +318,7 @@ export function useChessGame(initialGame: Game): ChessGameState & ChessGameActio
       setResult('*');
     }
     rerender();
-  }, [chess, undoCount, result, rerender]);
+  }, [chess, undoCount, result, rerender, isReplayMode]);
 
   const resign = useCallback(
     (color: 'w' | 'b') => {
@@ -340,9 +350,8 @@ export function useChessGame(initialGame: Game): ChessGameState & ChessGameActio
     result: computeResult(),
     canUndo:
       undoCount < MAX_UNDO &&
-      chess.history().length > 0 &&
-      !isGameOver &&
-      !isReplayMode,
+      !isReplayMode &&
+      (chess.history().length > 0 || (result !== '*' && !chess.isGameOver())),
     undoCount,
     gameInfo,
     isCheck,

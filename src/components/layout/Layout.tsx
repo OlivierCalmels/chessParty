@@ -13,7 +13,7 @@ export function Layout() {
       <GameBoardOrientationProvider>
         <div className="flex min-h-dvh flex-col">
           <Header theme={theme} onToggleTheme={toggleTheme} />
-          <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-6">
+          <main className="mx-auto w-full min-w-0 max-w-5xl flex-1 overflow-x-clip px-4 py-6">
             <Outlet />
           </main>
         </div>
