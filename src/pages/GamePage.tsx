@@ -1,5 +1,5 @@
 import { useNavigate, useParams } from 'react-router-dom';
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useMemo, useState } from 'react';
 
 import { CapturedPieces } from '../components/game/CapturedPieces';
 import { ChessBoard } from '../components/game/ChessBoard';
@@ -8,10 +8,36 @@ import { GameInfo } from '../components/game/GameInfo';
 import { MoveHistoryNav } from '../components/game/MoveHistoryNav';
 import { PGNPanel } from '../components/game/PGNPanel';
 import { TurnIndicator } from '../components/game/TurnIndicator';
+import { Button } from '../components/ui/Button';
 import { useGameBoardOrientation } from '../context/GameBoardOrientationContext';
 import { useChessGame } from '../hooks/useChessGame';
 import { getGame, saveGame } from '../services/storage';
-import type { Game } from '../types/game';
+import type { Game, GameClockState } from '../types/game';
+
+function applyElapsed(state: GameClockState, now: number): GameClockState {
+  if (!state.running || !state.lastTickAt) return state;
+  const elapsed = Math.max(0, now - state.lastTickAt);
+  if (elapsed === 0) return state;
+  if (state.activeColor === 'w') {
+    return {
+      ...state,
+      whiteRemainingMs: Math.max(0, state.whiteRemainingMs - elapsed),
+      lastTickAt: now,
+    };
+  }
+  return {
+    ...state,
+    blackRemainingMs: Math.max(0, state.blackRemainingMs - elapsed),
+    lastTickAt: now,
+  };
+}
+
+function formatClock(ms: number): string {
+  const safe = Math.max(0, ms);
+  const minutes = Math.floor(safe / 60_000);
+  const seconds = Math.floor((safe % 60_000) / 1000);
+  return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+}
 
 export function GamePage() {
   const { id } = useParams<{ id: string }>();
@@ -67,15 +93,141 @@ function GamePageInner({ game: initialGame }: { game: Game }) {
   } = useChessGame(initialGame);
 
   const { blackAtBottom, setBlackAtBottom } = useGameBoardOrientation();
+  const clockEnabled = initialGame.clockConfig?.enabled === true;
+  const [clockState, setClockState] = useState<GameClockState | undefined>(() => initialGame.clockState);
+  const [clockNow, setClockNow] = useState(() => Date.now());
 
   const prevSaveRef = useRef('');
+  const prevMoveCountRef = useRef(moves.length);
+  const timeoutAlertShownRef = useRef(false);
 
   useEffect(() => {
     setBlackAtBottom(false);
   }, [initialGame.id, setBlackAtBottom]);
 
+  useEffect(() => {
+    setClockState(initialGame.clockState);
+    prevMoveCountRef.current = initialGame.moves.length;
+  }, [initialGame.id, initialGame.clockState, initialGame.moves.length]);
+
+  useEffect(() => {
+    if (!clockEnabled) return;
+    const id = window.setInterval(() => setClockNow(Date.now()), 250);
+    return () => window.clearInterval(id);
+  }, [clockEnabled]);
+
+  useEffect(() => {
+    if (!clockEnabled || !clockState || !isGameOver || !clockState.running) return;
+    setClockState({ ...clockState, running: false, lastTickAt: undefined });
+  }, [clockEnabled, clockState, isGameOver]);
+
+  useEffect(() => {
+    if (!clockEnabled || !clockState || isGameOver || isReplayMode || !clockState.running) return;
+    const next = applyElapsed(clockState, Date.now());
+    if (next.activeColor === 'w' && next.whiteRemainingMs === 0) {
+      setClockState({ ...next, running: false, lastTickAt: undefined });
+      resign('w');
+      if (!timeoutAlertShownRef.current) {
+        window.alert(`Temps écoulé pour Blanc. ${gameInfo.black} gagne.`);
+        timeoutAlertShownRef.current = true;
+      }
+      return;
+    }
+    if (next.activeColor === 'b' && next.blackRemainingMs === 0) {
+      setClockState({ ...next, running: false, lastTickAt: undefined });
+      resign('b');
+      if (!timeoutAlertShownRef.current) {
+        window.alert(`Temps écoulé pour Noir. ${gameInfo.white} gagne.`);
+        timeoutAlertShownRef.current = true;
+      }
+      return;
+    }
+    if (next !== clockState) setClockState(next);
+  }, [clockEnabled, clockState, isGameOver, isReplayMode, resign]);
+
+  useEffect(() => {
+    if (!clockEnabled || !clockState || isGameOver || isReplayMode) return;
+    const prev = prevMoveCountRef.current;
+    const nextCount = moves.length;
+    if (nextCount <= prev) {
+      prevMoveCountRef.current = nextCount;
+      return;
+    }
+    const now = Date.now();
+    if (!clockState.started) {
+      setClockState({
+        ...clockState,
+        started: true,
+        running: true,
+        activeColor: displayTurn,
+        lastTickAt: now,
+      });
+      prevMoveCountRef.current = nextCount;
+      return;
+    }
+    let next = applyElapsed(clockState, now);
+    const mover = displayTurn === 'w' ? 'b' : 'w';
+    const incrementMs = (initialGame.clockConfig?.incrementSeconds ?? 0) * 1000;
+    if (mover === 'w') {
+      next = {
+        ...next,
+        whiteRemainingMs: next.whiteRemainingMs + incrementMs,
+      };
+    } else {
+      next = {
+        ...next,
+        blackRemainingMs: next.blackRemainingMs + incrementMs,
+      };
+    }
+    setClockState({
+      ...next,
+      running: true,
+      activeColor: displayTurn,
+      lastTickAt: now,
+    });
+    timeoutAlertShownRef.current = false;
+    prevMoveCountRef.current = nextCount;
+  }, [clockEnabled, clockState, displayTurn, initialGame.clockConfig?.incrementSeconds, isGameOver, isReplayMode, moves.length]);
+
+  const displayClock = useMemo(() => {
+    if (!clockEnabled || !clockState) return undefined;
+    const nowState = applyElapsed(clockState, clockNow);
+    return {
+      whiteMs: nowState.whiteRemainingMs,
+      blackMs: nowState.blackRemainingMs,
+      activeColor: nowState.running ? nowState.activeColor : undefined,
+      started: nowState.started,
+    };
+  }, [clockEnabled, clockState, clockNow]);
+
+  const canToggleClock =
+    clockEnabled &&
+    !!clockState &&
+    clockState.started &&
+    !isGameOver &&
+    !isReplayMode;
+
+  const toggleClockRunning = useCallback(() => {
+    if (!clockState || !canToggleClock) return;
+    if (clockState.running) {
+      const now = Date.now();
+      const next = applyElapsed(clockState, now);
+      setClockState({
+        ...next,
+        running: false,
+        lastTickAt: undefined,
+      });
+      return;
+    }
+    setClockState({
+      ...clockState,
+      running: true,
+      lastTickAt: Date.now(),
+    });
+  }, [clockState, canToggleClock]);
+
   const save = useCallback(() => {
-    const snapshot = JSON.stringify({ moves, result });
+    const snapshot = JSON.stringify({ moves, result, clockState });
     if (snapshot === prevSaveRef.current) return;
     prevSaveRef.current = snapshot;
     saveGame({
@@ -83,9 +235,10 @@ function GamePageInner({ game: initialGame }: { game: Game }) {
       moves,
       result,
       pgn,
+      clockState,
       updatedAt: Date.now(),
     });
-  }, [initialGame, moves, result, pgn]);
+  }, [initialGame, moves, result, pgn, clockState]);
 
   useEffect(() => {
     save();
@@ -112,6 +265,54 @@ function GamePageInner({ game: initialGame }: { game: Game }) {
               isGameOver={isGameOver}
             />
             <TurnIndicator turn={displayTurn} isGameOver={displayIsGameOver} />
+            {displayClock && (
+              <div className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div
+                    className={`rounded-lg border px-3 py-2 text-center ${
+                      displayClock.whiteMs === 0
+                        ? 'border-red-500 bg-red-500/20 text-red-500'
+                        : displayClock.activeColor === 'w'
+                        ? 'border-(--color-primary) bg-(--color-primary)/10 text-(--color-primary)'
+                        : 'border-(--color-border) bg-(--color-surface-alt)/50 text-(--color-text)'
+                    }`}
+                  >
+                    <div className="text-[11px] uppercase tracking-wide text-(--color-text-muted)">Blanc</div>
+                    <div className="text-xl font-semibold tabular-nums">{formatClock(displayClock.whiteMs)}</div>
+                  </div>
+                  <div
+                    className={`rounded-lg border px-3 py-2 text-center ${
+                      displayClock.blackMs === 0
+                        ? 'border-red-500 bg-red-500/20 text-red-500'
+                        : displayClock.activeColor === 'b'
+                        ? 'border-(--color-primary) bg-(--color-primary)/10 text-(--color-primary)'
+                        : 'border-(--color-border) bg-(--color-surface-alt)/50 text-(--color-text)'
+                    }`}
+                  >
+                    <div className="text-[11px] uppercase tracking-wide text-(--color-text-muted)">Noir</div>
+                    <div className="text-xl font-semibold tabular-nums">{formatClock(displayClock.blackMs)}</div>
+                  </div>
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    className="px-3 py-1.5 text-xs"
+                    onClick={toggleClockRunning}
+                    disabled={!canToggleClock}
+                  >
+                    {clockState?.running ? 'Pause horloge' : 'Reprendre horloge'}
+                  </Button>
+                </div>
+              </div>
+            )}
+            {displayClock && (displayClock.whiteMs === 0 || displayClock.blackMs === 0) && (
+              <div className="rounded-lg border border-red-500 bg-red-500/15 px-3 py-2 text-sm font-semibold text-red-500">
+                {displayClock.whiteMs === 0
+                  ? `Temps écoulé pour Blanc - ${gameInfo.black} gagne.`
+                  : `Temps écoulé pour Noir - ${gameInfo.white} gagne.`}
+              </div>
+            )}
           </div>
 
           <div className="flex flex-col gap-2">
