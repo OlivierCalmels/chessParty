@@ -1,7 +1,10 @@
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useMemo, useState } from 'react';
 
 import type { GameClockConfig } from '../../types/game';
+import { getPlayerNameOptions } from '../../services/playerNames';
 import { Button } from '../ui/Button';
+
+const PLAYER_NAME_DATALIST_ID = 'game-form-player-names';
 
 type Props = {
   onSubmit: (data: {
@@ -16,6 +19,7 @@ export function GameForm({ onSubmit }: Props) {
   const [name, setName] = useState('');
   const [white, setWhite] = useState('');
   const [black, setBlack] = useState('');
+  const playerNameOptions = useMemo(() => getPlayerNameOptions(), []);
   const [clockEnabled, setClockEnabled] = useState(false);
   const [baseMinutes, setBaseMinutes] = useState<GameClockConfig['baseMinutes']>(5);
   const [incrementSeconds, setIncrementSeconds] = useState<GameClockConfig['incrementSeconds']>(0);
@@ -40,6 +44,11 @@ export function GameForm({ onSubmit }: Props) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+      <datalist id={PLAYER_NAME_DATALIST_ID}>
+        {playerNameOptions.map((n) => (
+          <option key={n} value={n} />
+        ))}
+      </datalist>
       <div className="space-y-3 rounded-lg border border-(--color-border) bg-(--color-surface-alt)/50 p-3">
         <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-(--color-text)">
           <input
@@ -95,9 +104,12 @@ export function GameForm({ onSubmit }: Props) {
         <input
           id="white-player"
           type="text"
+          name="white-player"
           value={white}
           onChange={(e) => setWhite(e.target.value)}
-          placeholder="Nom du joueur"
+          list={PLAYER_NAME_DATALIST_ID}
+          placeholder="Choisir ou saisir un nom"
+          autoComplete="off"
           className={inputClass}
           required
         />
@@ -109,9 +121,12 @@ export function GameForm({ onSubmit }: Props) {
         <input
           id="black-player"
           type="text"
+          name="black-player"
           value={black}
           onChange={(e) => setBlack(e.target.value)}
-          placeholder="Nom du joueur"
+          list={PLAYER_NAME_DATALIST_ID}
+          placeholder="Choisir ou saisir un nom"
+          autoComplete="off"
           className={inputClass}
           required
         />

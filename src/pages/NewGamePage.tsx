@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { GameForm } from '../components/forms/GameForm';
 import { buildPgn } from '../services/pgn';
+import { rememberPlayerName } from '../services/playerNames';
 import { saveGame } from '../services/storage';
 import type { Game, GameClockConfig } from '../types/game';
 
@@ -63,6 +64,8 @@ export function NewGamePage() {
     };
     game.pgn = buildPgn(game);
     saveGame(game);
+    rememberPlayerName(data.white);
+    rememberPlayerName(data.black);
     navigate(`/game/${game.id}`);
   }
 
